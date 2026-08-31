@@ -8,6 +8,7 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script data-goatcounter="https://physikladen.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 <style>
   :root{
     --bg:#0e2038;
@@ -1006,6 +1007,14 @@
       toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 3200);
     }
 
+    function trackEvent(path, title){
+      try{
+        if(window.goatcounter && window.goatcounter.count){
+          window.goatcounter.count({ path: path, title: title, event: true });
+        }
+      }catch(e){}
+    }
+
     function totalQty(){
       return cart.reduce(function(sum, it){ return sum + it.qty; }, 0);
     }
@@ -1180,6 +1189,7 @@
           shipping: ship,
           total: subtotal() + ship.cost
         };
+        trackEvent('event/order-confirmed', 'Bestellung bestätigt: ' + ship.label);
         cart = [];
         saveCart();
         updateCartButton();
@@ -1232,6 +1242,7 @@
     }
 
     function openDrawer(){
+      trackEvent('event/cart-opened', 'Warenkorb geöffnet');
       renderDrawer();
       overlay.hidden = false;
       drawer.hidden = false;
@@ -1259,6 +1270,7 @@
         var price = parseFloat(btn.getAttribute('data-price'));
         addToCart(id, name, price);
         showToast(btn.getAttribute('data-msg') || (name + ' in den Warenkorb gelegt.'));
+        trackEvent('event/add-to-cart/' + id, 'In den Warenkorb: ' + name);
       });
     });
 
