@@ -264,8 +264,11 @@
     text-transform:uppercase;
   }
   .plate-icon{ width:56px; height:56px; }
+  .plate-icon.photo{ width:100px; height:100px; }
   .plate-icon svg{ width:100%; height:100%; }
-  .plate-icon img{ width:100%; height:100%; object-fit:cover; display:block; border:1px solid var(--line-dim); }
+  .plate-icon img{ width:100%; height:100%; object-fit:cover; display:block; border:1px solid var(--line-dim); cursor:zoom-in; }
+  .plate-icon img:hover{ border-color:var(--line); }
+  .plate-icon img:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
   .plate-icon .stroke{ fill:none; stroke:var(--line); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .plate-icon .dash{ stroke-dasharray:3 4; }
   .plate-icon .fill-brass{ fill:var(--brass); stroke:none; }
@@ -426,6 +429,45 @@
     transition:opacity .2s ease;
   }
   .cart-overlay.open{ opacity:1; pointer-events:auto; }
+
+  /* ===== Image lightbox ===== */
+  .lightbox-overlay{
+    position:fixed;
+    inset:0;
+    z-index:30;
+    background:rgba(6,15,28,0.88);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:48px;
+  }
+  .lightbox-overlay.open{ opacity:1; pointer-events:auto; }
+  .lightbox-overlay img{
+    max-width:100%;
+    max-height:100%;
+    border:1px solid var(--line-dim);
+    background:var(--bg-panel);
+  }
+  .lightbox-close{
+    position:fixed;
+    top:24px;
+    right:24px;
+    z-index:31;
+    background:transparent;
+    border:1px solid var(--line-dim);
+    color:var(--ink);
+    width:36px;
+    height:36px;
+    font-family:var(--font-mono);
+    font-size:1.1rem;
+    line-height:1;
+    cursor:pointer;
+  }
+  .lightbox-close:hover{ border-color:var(--line); color:var(--line); }
+  .lightbox-close:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
 
   .cart-drawer{
     position:fixed;
@@ -743,8 +785,8 @@
         <!-- Plate 01 -->
         <article class="plate">
           <span class="plate-no">Plate 01 — MD‑077</span>
-          <div class="plate-icon">
-            <img src="/images/md-077-maxwellscher-daemon.jpg" alt="Maxwell's Demon" loading="lazy">
+          <div class="plate-icon photo">
+            <img src="/images/md-077-maxwellscher-daemon.jpg" alt="Maxwell's Demon" data-code="MD-077" loading="lazy">
           </div>
           <h3 class="product-name">Maxwell's Demon</h3>
           <p class="product-desc">Neatly sorts fast and slow molecules into two chambers — with zero work input. Violates the 2nd law of thermodynamics just a little.</p>
@@ -762,8 +804,8 @@
         <!-- Plate 02 -->
         <article class="plate">
           <span class="plate-no">Plate 02 — EP‑006</span>
-          <div class="plate-icon">
-            <img src="/images/ep-006-elementarteilchen.jpg" alt="Elementary Particle Assortment" loading="lazy">
+          <div class="plate-icon photo">
+            <img src="/images/ep-006-elementarteilchen.jpg" alt="Elementary Particle Assortment" data-code="EP-006" loading="lazy">
           </div>
           <h3 class="product-name">Elementary Particle Assortment</h3>
           <p class="product-desc">6 quarks, 6 leptons, 4 gauge bosons. Antiparticles available for a surcharge, annihilation radiation not included.</p>
@@ -781,8 +823,8 @@
         <!-- Plate 03 -->
         <article class="plate">
           <span class="plate-no">Plate 03 — VA‑000</span>
-          <div class="plate-icon">
-            <img src="/images/va-000-vakuum.jpg" alt="Vacuum, 1 Litre" loading="lazy">
+          <div class="plate-icon photo">
+            <img src="/images/va-000-vakuum.jpg" alt="Vacuum, 1 Litre" data-code="VA-000" loading="lazy">
           </div>
           <h3 class="product-name">Vacuum, 1 Litre</h3>
           <p class="product-desc">Carefully emptied of everything. Delivered in a sealed can — please open only when ready to use, or the universe will rush back in.</p>
@@ -800,8 +842,8 @@
         <!-- Plate 04 -->
         <article class="plate">
           <span class="plate-no">Plate 04 — SK‑1935</span>
-          <div class="plate-icon">
-            <img src="/images/sk-1935-schroedingers-katze.jpg" alt="Schrödinger's Cat" loading="lazy">
+          <div class="plate-icon photo">
+            <img src="/images/sk-1935-schroedingers-katze.jpg" alt="Schrödinger's Cat" data-code="SK-1935" loading="lazy">
           </div>
           <h3 class="product-name">Schrödinger's Cat</h3>
           <p class="product-desc">Delivered as a sealed box. State uncertain until opened — we accept no liability for the outcome.</p>
@@ -959,6 +1001,11 @@
   <div class="drawer-body" id="drawerBody"></div>
   <div class="drawer-foot" id="drawerFoot"></div>
 </aside>
+
+<div class="lightbox-overlay" id="lightboxOverlay" hidden>
+  <img id="lightboxImg" src="" alt="">
+</div>
+<button class="lightbox-close" id="lightboxClose" type="button" aria-label="Close preview" hidden>×</button>
 
 <script>
   (function(){
@@ -1276,6 +1323,46 @@
     overlay.addEventListener('click', closeDrawer);
     document.addEventListener('keydown', function(e){
       if(e.key === 'Escape' && !drawer.hidden) closeDrawer();
+    });
+
+    var lightboxOverlay = document.getElementById('lightboxOverlay');
+    var lightboxImg = document.getElementById('lightboxImg');
+    var lightboxClose = document.getElementById('lightboxClose');
+
+    function openLightbox(img){
+      lightboxImg.src = img.src;
+      lightboxImg.alt = img.alt;
+      lightboxOverlay.hidden = false;
+      lightboxClose.hidden = false;
+      requestAnimationFrame(function(){ lightboxOverlay.classList.add('open'); });
+      document.body.style.overflow = 'hidden';
+      lightboxClose.focus();
+      trackEvent('event/image-preview/' + (img.getAttribute('data-code') || ''), 'Image preview: ' + img.alt);
+    }
+    function closeLightbox(){
+      lightboxOverlay.classList.remove('open');
+      document.body.style.overflow = '';
+      setTimeout(function(){
+        lightboxOverlay.hidden = true;
+        lightboxClose.hidden = true;
+        lightboxImg.src = '';
+      }, 200);
+    }
+
+    document.querySelectorAll('.plate-icon img').forEach(function(img){
+      img.setAttribute('tabindex', '0');
+      img.setAttribute('role', 'button');
+      img.addEventListener('click', function(){ openLightbox(img); });
+      img.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openLightbox(img); }
+      });
+    });
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightboxOverlay.addEventListener('click', function(e){
+      if(e.target === lightboxOverlay) closeLightbox();
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && !lightboxOverlay.hidden) closeLightbox();
     });
 
     updateCartButton();
